@@ -4,6 +4,9 @@ import { useAuth, type AppRole } from "./context/AuthContext.js";
 import { AppShell } from "./components/layout/AppShell.js";
 import { Dashboard } from "./pages/Dashboard.js";
 import { AnalyticsPage } from "./pages/AnalyticsPage.js";
+import { TargetsPage } from "./pages/TargetsPage.js";
+import { BenchmarksPage } from "./pages/BenchmarksPage.js";
+import { SocialPage } from "./pages/SocialPage.js";
 import { EntriesPage } from "./pages/EntriesPage.js";
 import { NewEntryWizard } from "./pages/NewEntryWizard.js";
 import { Login } from "./pages/Login.js";
@@ -44,6 +47,23 @@ export function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/targets" element={<TargetsPage />} />
+        <Route
+          path="/benchmarks"
+          element={
+            <RequireRole roles={["admin"]}>
+              <BenchmarksPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/social"
+          element={
+            <RequireRole roles={["admin", "auditor"]}>
+              <SocialPage />
+            </RequireRole>
+          }
+        />
         <Route path="/entries" element={<EntriesPage />} />
         <Route
           path="/entries/new"
@@ -53,7 +73,6 @@ export function App() {
             </RequireRole>
           }
         />
-        {/* Legacy data-entry route → redirect */}
         <Route path="/data-entry" element={<Navigate to="/entries" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />

@@ -3,9 +3,12 @@ import {
   BarChart3,
   ClipboardCheck,
   FilePlus2,
+  GitCompare,
   Globe2,
   LayoutDashboard,
   Table2,
+  Target,
+  Users,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth, type AppRole } from "../../context/AuthContext.js";
@@ -34,11 +37,15 @@ const NAV_BY_ROLE: Record<AppRole, NavItem[]> = {
   auditor: [
     { to: "/dashboard", label: "Dashboard", icon: ClipboardCheck, end: true },
     { to: "/analytics", label: "Analytics", icon: BarChart3, end: true },
+    { to: "/targets", label: "Targets", icon: Target, end: true },
     { to: "/entries", label: "All entries", icon: Table2, end: true },
   ],
   admin: [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
     { to: "/analytics", label: "Analytics", icon: BarChart3, end: true },
+    { to: "/targets", label: "Targets", icon: Target, end: true },
+    { to: "/benchmarks", label: "Benchmarks", icon: GitCompare, end: true },
+    { to: "/social", label: "People & Gov", icon: Users, end: true },
     { to: "/entries", label: "Entries", icon: Table2, end: true },
   ],
 };
