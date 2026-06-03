@@ -13,3 +13,7 @@ dist/
 # SQLite (PoC)
 api/prisma/dev.db
 *.db-journal
+
+.claude
+
+web/.claude
