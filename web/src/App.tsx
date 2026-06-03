@@ -1,40 +1,62 @@
-import { Title } from "@tremor/react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { PlatformFilterProvider } from "./context/PlatformContext.js";
+import { useAuth, type AppRole } from "./context/AuthContext.js";
+import { AppShell } from "./components/layout/AppShell.js";
 import { Dashboard } from "./pages/Dashboard.js";
-import { DataEntry } from "./pages/DataEntry.js";
+import { AnalyticsPage } from "./pages/AnalyticsPage.js";
+import { EntriesPage } from "./pages/EntriesPage.js";
+import { NewEntryWizard } from "./pages/NewEntryWizard.js";
+import { Login } from "./pages/Login.js";
 
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  [
-    "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-    isActive
-      ? "bg-blue-600 text-white"
-      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
-  ].join(" ");
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function RequireRole({
+  roles,
+  children,
+}: {
+  roles: AppRole[];
+  children: React.ReactNode;
+}) {
+  const { user } = useAuth();
+  if (!user || !roles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
 
 export function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <Title className="text-gray-900">ESG Data Platform</Title>
-          <nav className="flex gap-2">
-            <NavLink to="/dashboard" className={navLinkClass}>
-              Dashboard
-            </NavLink>
-            <NavLink to="/data-entry" className={navLinkClass}>
-              Data Entry
-            </NavLink>
-          </nav>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/data-entry" element={<DataEntry />} />
-        </Routes>
-      </main>
-    </div>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        element={
+          <RequireAuth>
+            <PlatformFilterProvider>
+              <AppShell />
+            </PlatformFilterProvider>
+          </RequireAuth>
+        }
+      >
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/entries" element={<EntriesPage />} />
+        <Route
+          path="/entries/new"
+          element={
+            <RequireRole roles={["data-entry"]}>
+              <NewEntryWizard />
+            </RequireRole>
+          }
+        />
+        {/* Legacy data-entry route → redirect */}
+        <Route path="/data-entry" element={<Navigate to="/entries" replace />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
   );
 }

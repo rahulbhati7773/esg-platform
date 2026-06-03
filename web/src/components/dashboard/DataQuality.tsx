@@ -1,7 +1,11 @@
-import { Card, Grid, Metric, ProgressBar, Text, Title } from "@tremor/react";
+import { motion } from "framer-motion";
+import { ArrowRight, ClipboardCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { getDataQuality } from "../../api.js";
-import { useDashboardPeriod } from "../../context/DashboardPeriodContext.js";
+import { usePlatformFilters } from "../../context/PlatformContext.js";
+import { PanelCard } from "../ui/PanelCard.js";
+import { Skeleton } from "../ui/Skeleton.js";
 import type { DataQualitySummary } from "../../types.js";
 
 function percent(part: number, total: number): number {
@@ -11,8 +15,63 @@ function percent(part: number, total: number): number {
   return Math.round((part / total) * 1000) / 10;
 }
 
+function ProgressRing({ value, label }: { value: number; label: string }) {
+  const size = 128;
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (value / 100) * circumference;
+
+  return (
+    <div
+      className="relative shrink-0"
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={`${label}: ${value}%`}
+    >
+      <svg
+        width={size}
+        height={size}
+        className="block -rotate-90"
+        aria-hidden
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="10"
+          className="text-[var(--border)]"
+        />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="10"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          strokeLinecap="round"
+          className="text-[var(--primary)]"
+        />
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        <p className="text-2xl font-semibold leading-none tabular-nums text-[var(--text)]">
+          {value}%
+        </p>
+        <p className="mt-1 text-xs font-medium text-[var(--text-muted)]">
+          {label}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function DataQuality() {
-  const { period, facilityId } = useDashboardPeriod();
+  const { period, facilityId } = usePlatformFilters();
   const [quality, setQuality] = useState<DataQualitySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +89,7 @@ export function DataQuality() {
       })
       .catch(() => {
         if (!cancelled) {
-          setError("Failed to load data quality");
+          setError("Could not load data quality.");
         }
       })
       .finally(() => {
@@ -63,64 +122,85 @@ export function DataQuality() {
   }, [quality]);
 
   return (
-    <div className="space-y-4">
-      <Grid numItems={1} numItemsSm={2} className="gap-4">
-        <Card>
-          <Text>Submitted</Text>
-          {loading && <Metric className="mt-2">…</Metric>}
-          {!loading && stats && (
+    <PanelCard>
+      <div className="flex items-start gap-3">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-2">
+          <ClipboardCheck className="h-5 w-5 text-[var(--primary)]" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--text)]">
+            Data quality
+          </h3>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            Submission completeness and gaps to fix.
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+
+      <div className="mt-6 grid gap-8 lg:grid-cols-[auto_1fr]">
+        <div className="flex flex-wrap justify-center gap-8">
+          {loading ? (
             <>
-              <Metric className="mt-2">{stats.submittedPct}%</Metric>
-              <ProgressBar
-                value={stats.submittedPct}
-                className="mt-3"
-                color="blue"
-              />
+              <Skeleton className="h-32 w-32 rounded-full" />
+              <Skeleton className="h-32 w-32 rounded-full" />
             </>
-          )}
-        </Card>
-        <Card>
-          <Text>Approved</Text>
-          {loading && <Metric className="mt-2">…</Metric>}
-          {!loading && stats && (
+          ) : stats ? (
             <>
-              <Metric className="mt-2">{stats.approvedPct}%</Metric>
-              <ProgressBar
-                value={stats.approvedPct}
-                className="mt-3"
-                color="emerald"
-              />
+              <ProgressRing value={stats.submittedPct} label="Submitted" />
+              <ProgressRing value={stats.approvedPct} label="Approved" />
             </>
+          ) : null}
+        </div>
+
+        <div>
+          <h4 className="text-sm font-semibold text-[var(--text)]">
+            Missing records
+          </h4>
+
+          {loading && (
+            <div className="mt-3 space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
+            </div>
           )}
-        </Card>
-      </Grid>
 
-      <Card>
-        <Title>Missing data</Title>
-        <Text className="mt-1 text-gray-600">
-          Facility × metric combinations with no entry in the reporting period.
-        </Text>
+          {!loading && quality && quality.missing.length === 0 && (
+            <p className="mt-3 text-sm text-green-700 dark:text-green-400">
+              All expected combinations have data.
+            </p>
+          )}
 
-        {error && <Text className="mt-3 text-sm text-red-600">{error}</Text>}
-
-        {loading && <Text className="mt-4">Loading…</Text>}
-
-        {!loading && quality && quality.missing.length === 0 && (
-          <Text className="mt-4 text-emerald-700">
-            No missing combinations for this period.
-          </Text>
-        )}
-
-        {!loading && quality && quality.missing.length > 0 && (
-          <ul className="mt-4 max-h-48 space-y-2 overflow-y-auto text-sm text-gray-700">
-            {quality.missing.map((item) => (
-              <li key={`${item.facilityId}-${item.metricId}`}>
-                {item.facility} — {item.metric}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-    </div>
+          {!loading && quality && quality.missing.length > 0 && (
+            <ul className="mt-3 max-h-52 space-y-2 overflow-y-auto">
+              {quality.missing.slice(0, 12).map((item, index) => (
+                <motion.li
+                  key={`${item.facilityId}-${item.metricId}`}
+                  initial={{ opacity: 0, x: -4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.04 }}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm"
+                >
+                  <span className="text-[var(--text)]">
+                    {item.facility} — {item.metric}
+                  </span>
+                  <Link
+                    to={`/data-entry?facilityId=${item.facilityId}&metricId=${item.metricId}`}
+                    className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--primary)] hover:opacity-80"
+                  >
+                    Add data
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </motion.li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </PanelCard>
   );
 }

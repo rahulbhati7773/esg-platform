@@ -1,26 +1,22 @@
-import {
-  BadgeDelta,
-  Card,
-  Flex,
-  Metric,
-  Text,
-} from "@tremor/react";
+import { Metric } from "@tremor/react";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { getKpis } from "../../api.js";
-import { useDashboardPeriod } from "../../context/DashboardPeriodContext.js";
+import { usePlatformFilters } from "../../context/PlatformContext.js";
+import { staggerContainer, staggerItem } from "../../lib/motion.js";
+import { DeltaPill } from "../ui/DeltaPill.js";
+import { PanelCard } from "../ui/PanelCard.js";
+import { Skeleton } from "../ui/Skeleton.js";
 import type { KpiSummaryItem } from "../../types.js";
 import {
-  deltaTypeForChange,
-  formatDeltaPercent,
   formatKpiValue,
-  isIncreasePositiveForKpi,
   KPI_DISPLAY,
   KPI_KEYS,
   matchKpiItem,
 } from "../../utils/kpiConfig.js";
 
 export function KpiCards() {
-  const { period, facilityId } = useDashboardPeriod();
+  const { period, facilityId } = usePlatformFilters();
   const [kpis, setKpis] = useState<KpiSummaryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +34,7 @@ export function KpiCards() {
       })
       .catch(() => {
         if (!cancelled) {
-          setError("Failed to load KPI summary");
+          setError("Could not load summary metrics.");
         }
       })
       .finally(() => {
@@ -53,48 +49,58 @@ export function KpiCards() {
   }, [period, facilityId]);
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+    >
       {KPI_KEYS.map((key) => {
         const config = KPI_DISPLAY[key];
         const item = matchKpiItem(kpis, key);
 
         return (
-          <Card key={key}>
-            <Text>{config.label}</Text>
-            {loading && <Metric className="mt-2">…</Metric>}
-            {error && (
-              <Text className="mt-2 text-sm text-red-600">{error}</Text>
-            )}
-            {!loading && !error && (
-              <>
-                <Metric className="mt-2">
-                  {item
-                    ? formatKpiValue(item.total, item.unit)
-                    : "—"}
-                </Metric>
-                {item && (
-                  <Flex className="mt-3 justify-start">
-                    <BadgeDelta
-                      deltaType={deltaTypeForChange(
-                        item.delta,
-                        item.deltaPercent,
-                      )}
-                      isIncreasePositive={isIncreasePositiveForKpi(key)}
-                    >
-                      {formatDeltaPercent(item.deltaPercent)}
-                    </BadgeDelta>
-                  </Flex>
-                )}
-                {!item && (
-                  <Text className="mt-2 text-sm text-gray-500">
-                    No data for period
-                  </Text>
-                )}
-              </>
-            )}
-          </Card>
+          <motion.div key={key} variants={staggerItem}>
+            <PanelCard interactive className="h-full">
+              <p className="text-sm font-medium text-slate-500">
+                {config.label}
+              </p>
+
+              {loading && (
+                <div className="mt-3 space-y-2">
+                  <Skeleton className="h-8 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              )}
+
+              {error && (
+                <p className="mt-3 text-sm text-red-600">{error}</p>
+              )}
+
+              {!loading && !error && (
+                <>
+                  <Metric className="mt-2 text-2xl text-slate-900">
+                    {item ? formatKpiValue(item.total, item.unit) : "—"}
+                  </Metric>
+                  {item && (
+                    <div className="mt-3">
+                      <DeltaPill
+                        deltaPercent={item.deltaPercent}
+                        kpiKey={key}
+                      />
+                    </div>
+                  )}
+                  {!item && (
+                    <p className="mt-2 text-sm text-slate-400">
+                      No data for this period
+                    </p>
+                  )}
+                </>
+              )}
+            </PanelCard>
+          </motion.div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }

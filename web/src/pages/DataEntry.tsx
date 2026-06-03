@@ -1,12 +1,16 @@
-import { Text, Title } from "@tremor/react";
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getFacilities, getMetrics } from "../api.js";
 import { EntriesTable } from "../components/EntriesTable.js";
 import { EntryForm } from "../components/EntryForm.js";
+import { GlobalControllerPanel } from "../components/layout/GlobalControllerPanel.js";
 import { Toast } from "../components/Toast.js";
+import { staggerContainer } from "../lib/motion.js";
 import type { EsgEntry, Facility, Metric } from "../types.js";
 
 export function DataEntry() {
+  const [searchParams] = useSearchParams();
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [editingEntry, setEditingEntry] = useState<EsgEntry | null>(null);
@@ -16,6 +20,9 @@ export function DataEntry() {
     variant: "success" | "error";
   } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const prefillFacilityId = searchParams.get("facilityId");
+  const prefillMetricId = searchParams.get("metricId");
 
   const refreshEntries = useCallback(() => {
     setRefreshToken((token) => token + 1);
@@ -39,14 +46,14 @@ export function DataEntry() {
         setFacilities(facilityList);
         setMetrics(metricList);
       } catch {
-        setLoadError("Failed to load facilities and metrics from the API.");
+        setLoadError("Could not load facilities and metrics.");
       }
     })();
   }, []);
 
   const handleEdit = (entry: EsgEntry) => {
     if (entry.status === "locked") {
-      showToast("Locked entries cannot be edited", "error");
+      showToast("This record is locked and cannot be edited.", "error");
       return;
     }
     setEditingEntry(entry);
@@ -54,38 +61,53 @@ export function DataEntry() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Title>Data Entry</Title>
-        <Text className="mt-2">
-          Capture and manage ESG entries with validation and status workflow.
-        </Text>
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+      className="mx-auto w-full max-w-[1200px] space-y-5 sm:space-y-6"
+    >
+      <header>
+        <h2 className="text-xl font-semibold text-[var(--text)]">
+          Data entry
+        </h2>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
+          Capture readings and move them through your approval workflow.
+        </p>
+      </header>
+
+      <GlobalControllerPanel />
+
+      {loadError && (
+        <p className="text-sm text-red-600 dark:text-red-400">{loadError}</p>
+      )}
+
+      <div className="flex flex-col gap-6">
+        <EntryForm
+          facilities={facilities}
+          metrics={metrics}
+          editingEntry={editingEntry}
+          prefillFacilityId={prefillFacilityId}
+          prefillMetricId={prefillMetricId}
+          onSuccess={(message) => {
+            showToast(message);
+            setEditingEntry(null);
+            refreshEntries();
+          }}
+          onError={(message) => showToast(message, "error")}
+          onCancelEdit={() => setEditingEntry(null)}
+        />
+
+        <EntriesTable
+          facilities={facilities}
+          metrics={metrics}
+          refreshToken={refreshToken}
+          onEdit={handleEdit}
+          onEntriesChange={refreshEntries}
+        />
       </div>
 
-      {loadError && <Text className="text-red-600">{loadError}</Text>}
-
-      <EntryForm
-        facilities={facilities}
-        metrics={metrics}
-        editingEntry={editingEntry}
-        onSuccess={(message) => {
-          showToast(message);
-          setEditingEntry(null);
-          refreshEntries();
-        }}
-        onError={(message) => showToast(message, "error")}
-        onCancelEdit={() => setEditingEntry(null)}
-      />
-
-      <EntriesTable
-        facilities={facilities}
-        metrics={metrics}
-        refreshToken={refreshToken}
-        onEdit={handleEdit}
-        onEntriesChange={refreshEntries}
-      />
-
       {toast && <Toast message={toast.message} variant={toast.variant} />}
-    </div>
+    </motion.div>
   );
 }

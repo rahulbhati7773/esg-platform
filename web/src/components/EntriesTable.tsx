@@ -1,23 +1,18 @@
-import {
-  Badge,
-  Button,
-  Card,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-  Text,
-  Title,
-} from "@tremor/react";
+import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { useCallback, useEffect, useState } from "react";
+import { Lock, Pencil } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   isApiError,
   listEntries,
   updateEntryStatus,
 } from "../api.js";
+import { FormDatePicker } from "./ui/FormDatePicker.js";
+import { FormSelect } from "./ui/FormSelect.js";
+import { PanelCard } from "./ui/PanelCard.js";
+import { Skeleton } from "./ui/Skeleton.js";
+import { StatusWorkflow } from "./ui/StatusWorkflow.js";
+import { cn } from "../lib/cn.js";
 import type {
   EntryStatus,
   EsgEntry,
@@ -28,7 +23,6 @@ import type {
 import {
   nextStatus,
   statusAdvanceLabel,
-  statusBadgeColor,
 } from "../utils/entryStatus.js";
 
 type EntriesTableProps = {
@@ -47,6 +41,8 @@ const STATUS_FILTER_OPTIONS: Array<EntryStatus | ""> = [
   "locked",
 ];
 
+const ALL_VALUE = "__all__";
+
 export function EntriesTable({
   facilities,
   metrics,
@@ -58,6 +54,7 @@ export function EntriesTable({
   const [loading, setLoading] = useState(true);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [advancingId, setAdvancingId] = useState<number | null>(null);
+  const [pulseId, setPulseId] = useState<number | null>(null);
 
   const [facilityFilter, setFacilityFilter] = useState("");
   const [metricFilter, setMetricFilter] = useState("");
@@ -65,12 +62,39 @@ export function EntriesTable({
   const [periodStartFilter, setPeriodStartFilter] = useState("");
   const [periodEndFilter, setPeriodEndFilter] = useState("");
 
+  const facilityOptions = useMemo(
+    () =>
+      facilities.map((facility) => ({
+        value: String(facility.id),
+        label: facility.name,
+      })),
+    [facilities],
+  );
+
+  const metricOptions = useMemo(
+    () =>
+      metrics.map((metric) => ({
+        value: String(metric.id),
+        label: metric.name,
+      })),
+    [metrics],
+  );
+
+  const statusOptions = useMemo(
+    () =>
+      STATUS_FILTER_OPTIONS.filter(Boolean).map((status) => ({
+        value: status,
+        label: status.charAt(0).toUpperCase() + status.slice(1),
+      })),
+    [],
+  );
+
   const facilityName = (id: number) =>
     facilities.find((f) => f.id === id)?.name ?? `Facility #${id}`;
 
   const metricLabel = (id: number) => {
     const metric = metrics.find((m) => m.id === id);
-    return metric ? `${metric.name} (${metric.unit})` : `Metric #${id}`;
+    return metric ? `${metric.name}` : `Metric #${id}`;
   };
 
   const loadEntries = useCallback(async () => {
@@ -126,6 +150,8 @@ export function EntriesTable({
       setEntries((current) =>
         current.map((row) => (row.id === updated.id ? updated : row)),
       );
+      setPulseId(updated.id);
+      window.setTimeout(() => setPulseId(null), 600);
       onEntriesChange?.();
     } catch (error) {
       if (isApiError(error) && error.response?.status === 409) {
@@ -148,151 +174,178 @@ export function EntriesTable({
   };
 
   return (
-    <Card>
-      <Title>Entries</Title>
-      <Text className="mt-2 text-gray-600">
-        Filter and manage submitted ESG data.
-      </Text>
+    <PanelCard className="flex flex-col">
+      <h3 className="text-sm font-semibold text-[var(--text)]">Entries</h3>
+      <p className="mt-1 text-sm text-[var(--text-muted)]">
+        Filter the list and advance records through the workflow.
+      </p>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <select
-          value={facilityFilter}
-          onChange={(e) => setFacilityFilter(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-        >
-          <option value="">All facilities</option>
-          {facilities.map((facility) => (
-            <option key={facility.id} value={facility.id}>
-              {facility.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={metricFilter}
-          onChange={(e) => setMetricFilter(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-        >
-          <option value="">All metrics</option>
-          {metrics.map((metric) => (
-            <option key={metric.id} value={metric.id}>
-              {metric.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as EntryStatus | "")
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <FormSelect
+          value={facilityFilter || ALL_VALUE}
+          onValueChange={(value) =>
+            setFacilityFilter(value === ALL_VALUE ? "" : value)
           }
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-        >
-          {STATUS_FILTER_OPTIONS.map((status) => (
-            <option key={status || "all"} value={status}>
-              {status ? status : "All statuses"}
-            </option>
-          ))}
-        </select>
+          placeholder="All facilities"
+          aria-label="Filter by facility"
+          options={[
+            { value: ALL_VALUE, label: "All facilities" },
+            ...facilityOptions,
+          ]}
+        />
 
-        <input
-          type="date"
+        <FormSelect
+          value={metricFilter || ALL_VALUE}
+          onValueChange={(value) =>
+            setMetricFilter(value === ALL_VALUE ? "" : value)
+          }
+          placeholder="All metrics"
+          aria-label="Filter by metric"
+          options={[
+            { value: ALL_VALUE, label: "All metrics" },
+            ...metricOptions,
+          ]}
+        />
+
+        <FormSelect
+          value={statusFilter || ALL_VALUE}
+          onValueChange={(value) =>
+            setStatusFilter(
+              value === ALL_VALUE ? "" : (value as EntryStatus),
+            )
+          }
+          placeholder="All statuses"
+          aria-label="Filter by status"
+          options={[
+            { value: ALL_VALUE, label: "All statuses" },
+            ...statusOptions,
+          ]}
+        />
+
+        <FormDatePicker
           value={periodStartFilter}
-          onChange={(e) => setPeriodStartFilter(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          onChange={setPeriodStartFilter}
           placeholder="Period from"
           aria-label="Period from"
         />
 
-        <input
-          type="date"
+        <FormDatePicker
           value={periodEndFilter}
-          onChange={(e) => setPeriodEndFilter(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          onChange={setPeriodEndFilter}
           placeholder="Period to"
           aria-label="Period to"
         />
       </div>
 
       {statusError && (
-        <Text className="mt-3 text-sm text-red-600">{statusError}</Text>
+        <p className="mt-3 text-sm text-red-600 dark:text-red-400">{statusError}</p>
       )}
 
-      <Table className="mt-4">
-        <TableHead>
-          <TableRow>
-            <TableHeaderCell>Facility</TableHeaderCell>
-            <TableHeaderCell>Metric</TableHeaderCell>
-            <TableHeaderCell>Value</TableHeaderCell>
-            <TableHeaderCell>Period</TableHeaderCell>
-            <TableHeaderCell>Status</TableHeaderCell>
-            <TableHeaderCell>Actions</TableHeaderCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {loading && (
-            <TableRow>
-              <TableCell colSpan={6}>
-                <Text>Loading entries…</Text>
-              </TableCell>
-            </TableRow>
-          )}
-          {!loading && entries.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6}>
-                <Text>No entries match the current filters.</Text>
-              </TableCell>
-            </TableRow>
-          )}
-          {!loading &&
-            entries.map((entry) => {
-              const next = nextStatus(entry.status);
-              const isLocked = entry.status === "locked";
+      <div className="scroll-themed mt-4 max-h-[640px] overflow-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <table className="w-full min-w-[520px] border-collapse text-sm">
+          <thead className="sticky top-0 z-10 bg-[var(--surface-muted)] text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            <tr>
+              <th className="px-3 py-2.5 text-left">Facility</th>
+              <th className="px-3 py-2.5 text-left">Metric</th>
+              <th className="px-3 py-2.5 text-right">Value</th>
+              <th className="px-3 py-2.5 text-left">Status</th>
+              <th className="px-3 py-2.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading &&
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  <td colSpan={5} className="px-3 py-3">
+                    <Skeleton className="h-5 w-full" />
+                  </td>
+                </tr>
+              ))}
 
-              return (
-                <TableRow key={entry.id}>
-                  <TableCell>{facilityName(entry.facilityId)}</TableCell>
-                  <TableCell>{metricLabel(entry.metricId)}</TableCell>
-                  <TableCell>{entry.value}</TableCell>
-                  <TableCell>
-                    {formatPeriod(entry.periodStart, entry.periodEnd)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge color={statusBadgeColor(entry.status)}>
-                      {entry.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="xs"
-                        variant="secondary"
-                        disabled={isLocked}
-                        onClick={() => onEdit(entry)}
-                        title={
-                          isLocked
-                            ? "Locked entries cannot be edited"
-                            : "Edit entry value"
-                        }
-                      >
-                        Edit
-                      </Button>
-                      {next && (
-                        <Button
-                          size="xs"
-                          disabled={advancingId === entry.id}
-                          onClick={() => void handleAdvanceStatus(entry)}
+            {!loading && entries.length === 0 && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="px-3 py-8 text-center text-[var(--text-muted)]"
+                >
+                  No entries match the current filters.
+                </td>
+              </tr>
+            )}
+
+            {!loading &&
+              entries.map((entry) => {
+                const next = nextStatus(entry.status);
+                const isLocked = entry.status === "locked";
+
+                return (
+                  <tr
+                    key={entry.id}
+                    className={cn(
+                      "border-t border-[var(--border)] transition-colors hover:bg-[var(--surface-muted)]",
+                      isLocked && "opacity-60",
+                    )}
+                  >
+                    <td className="px-3 py-3 font-medium">{facilityName(entry.facilityId)}</td>
+                    <td className="px-3 py-3 text-[var(--text-muted)]">
+                      {metricLabel(entry.metricId)}
+                      <span className="mt-0.5 block text-[11px] text-[var(--text-subtle)]">
+                        {formatPeriod(entry.periodStart, entry.periodEnd)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums font-medium">
+                      {entry.value.toLocaleString()}
+                    </td>
+                    <td className="px-3 py-3">
+                      <StatusWorkflow
+                        status={entry.status}
+                        compact
+                        pulse={pulseId === entry.id}
+                      />
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => onEdit(entry)}
+                          title={
+                            isLocked
+                              ? "This record is locked and audit-sealed"
+                              : "Edit entry value"
+                          }
+                          className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          {statusAdvanceLabel(next)}
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-        </TableBody>
-      </Table>
-    </Card>
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                        {next && (
+                          <motion.button
+                            type="button"
+                            disabled={advancingId === entry.id}
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => void handleAdvanceStatus(entry)}
+                            className="rounded-md bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-60"
+                          >
+                            {statusAdvanceLabel(next)}
+                          </motion.button>
+                        )}
+                        {isLocked && (
+                          <span
+                            className="inline-flex items-center text-[var(--text-muted)]"
+                            title="Audit-sealed"
+                          >
+                            <Lock className="h-4 w-4" />
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
+      </div>
+    </PanelCard>
   );
 }

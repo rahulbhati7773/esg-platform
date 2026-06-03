@@ -28,6 +28,11 @@ export function matchKpiItem(
   kpis: KpiSummaryItem[],
   key: KpiKey,
 ): KpiSummaryItem | undefined {
+  if (key === "waste") {
+    return kpis.find((item) =>
+      item.metric.toLowerCase().includes("waste generated"),
+    );
+  }
   return kpis.find((item) => item.metric.toLowerCase().includes(key));
 }
 
