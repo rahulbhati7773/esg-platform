@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.*
+
+# SQLite (PoC)
+api/prisma/dev.db
+*.db-journal

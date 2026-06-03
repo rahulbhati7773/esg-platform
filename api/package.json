@@ -1,0 +1,23 @@
+{
+  "name": "@esg-platform/api",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "echo \"Add dev script in a later prompt\"",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.17.0",
+    "prisma": "^6.0.0",
+    "typescript": "^5.6.0"
+  }
+}
