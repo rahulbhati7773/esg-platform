@@ -7,6 +7,12 @@ import {
   listEntries,
   updateEntryStatus,
 } from "../api.js";
+import { useAuth } from "../context/AuthContext.js";
+import {
+  canEditEntry,
+  entryPermissionsForRole,
+  nextStatusForRole,
+} from "../lib/entryPermissions.js";
 import { FormDatePicker } from "./ui/FormDatePicker.js";
 import { FormSelect } from "./ui/FormSelect.js";
 import { PanelCard } from "./ui/PanelCard.js";
@@ -20,10 +26,7 @@ import type {
   ListEntriesFilters,
   Metric,
 } from "../types.js";
-import {
-  nextStatus,
-  statusAdvanceLabel,
-} from "../utils/entryStatus.js";
+import { statusAdvanceLabel } from "../utils/entryStatus.js";
 
 type EntriesTableProps = {
   facilities: Facility[];
@@ -50,6 +53,10 @@ export function EntriesTable({
   onEdit,
   onEntriesChange,
 }: EntriesTableProps) {
+  const { user } = useAuth();
+  const role = user?.role ?? "data-entry";
+  const permissions = entryPermissionsForRole(role);
+
   const [entries, setEntries] = useState<EsgEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusError, setStatusError] = useState<string | null>(null);
@@ -137,7 +144,7 @@ export function EntriesTable({
   }, [loadEntries, refreshToken]);
 
   const handleAdvanceStatus = async (entry: EsgEntry) => {
-    const next = nextStatus(entry.status);
+    const next = nextStatusForRole(entry.status, role);
     if (!next) {
       return;
     }
@@ -154,7 +161,10 @@ export function EntriesTable({
       window.setTimeout(() => setPulseId(null), 600);
       onEntriesChange?.();
     } catch (error) {
-      if (isApiError(error) && error.response?.status === 409) {
+      if (
+        isApiError(error) &&
+        (error.response?.status === 409 || error.response?.status === 403)
+      ) {
         setStatusError(error.response.data.error);
       } else {
         setStatusError("Failed to update status");
@@ -173,14 +183,60 @@ export function EntriesTable({
     return `${format(startDate, "dd MMM yyyy")} – ${format(endDate, "dd MMM yyyy")}`;
   };
 
+  const renderActions = (entry: EsgEntry) => {
+    const next = nextStatusForRole(entry.status, role);
+    const isLocked = entry.status === "locked";
+    const showEdit = canEditEntry(entry, permissions, role);
+
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+        {showEdit && (
+          <button
+            type="button"
+            onClick={() => onEdit(entry)}
+            title="Edit entry value"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-muted)]"
+          >
+            <Pencil className="h-3 w-3 shrink-0" />
+            Edit
+          </button>
+        )}
+        {next && (
+          <motion.button
+            type="button"
+            disabled={advancingId === entry.id}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => void handleAdvanceStatus(entry)}
+            className="inline-flex shrink-0 rounded-md bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-60"
+          >
+            {statusAdvanceLabel(next)}
+          </motion.button>
+        )}
+        {isLocked && (
+          <span
+            className="inline-flex shrink-0 items-center text-[var(--text-muted)]"
+            title="Audit-sealed"
+          >
+            <Lock className="h-4 w-4" />
+          </span>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <PanelCard className="flex flex-col">
+    <PanelCard className="flex min-w-0 flex-col">
       <h3 className="text-sm font-semibold text-[var(--text)]">Entries</h3>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
-        Filter the list and advance records through the workflow.
+      <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
+        {role === "data-entry"
+          ? "Edit draft records and submit them for review. After submit, only an auditor can approve or lock."
+          : role === "auditor"
+            ? "Approve submitted records or lock approved records. You cannot edit values or submit drafts."
+            : "Filter and browse records across facilities."}
       </p>
 
-      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-2 min-[480px]:grid-cols-2 lg:grid-cols-3">
+        <div className="min-w-0">
         <FormSelect
           value={facilityFilter || ALL_VALUE}
           onValueChange={(value) =>
@@ -193,7 +249,9 @@ export function EntriesTable({
             ...facilityOptions,
           ]}
         />
+        </div>
 
+        <div className="min-w-0">
         <FormSelect
           value={metricFilter || ALL_VALUE}
           onValueChange={(value) =>
@@ -206,7 +264,9 @@ export function EntriesTable({
             ...metricOptions,
           ]}
         />
+        </div>
 
+        <div className="min-w-0">
         <FormSelect
           value={statusFilter || ALL_VALUE}
           onValueChange={(value) =>
@@ -221,28 +281,95 @@ export function EntriesTable({
             ...statusOptions,
           ]}
         />
+        </div>
 
+        <div className="min-w-0 min-[480px]:col-span-2 lg:col-span-1">
         <FormDatePicker
           value={periodStartFilter}
           onChange={setPeriodStartFilter}
           placeholder="Period from"
           aria-label="Period from"
         />
+        </div>
 
+        <div className="min-w-0 min-[480px]:col-span-2 lg:col-span-1">
         <FormDatePicker
           value={periodEndFilter}
           onChange={setPeriodEndFilter}
           placeholder="Period to"
           aria-label="Period to"
         />
+        </div>
       </div>
 
       {statusError && (
-        <p className="mt-3 text-sm text-red-600 dark:text-red-400">{statusError}</p>
+        <p className="mt-3 break-words text-sm text-red-600 dark:text-red-400">
+          {statusError}
+        </p>
       )}
 
-      <div className="scroll-themed mt-4 max-h-[640px] overflow-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-        <table className="w-full min-w-[520px] border-collapse text-sm">
+      {/* Mobile: card list */}
+      <div className="mt-4 space-y-3 md:hidden">
+        {loading &&
+          Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+            >
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="mt-2 h-4 w-1/2" />
+            </div>
+          ))}
+
+        {!loading && entries.length === 0 && (
+          <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-8 text-center text-sm text-[var(--text-muted)]">
+            No entries match the current filters.
+          </p>
+        )}
+
+        {!loading &&
+          entries.map((entry) => {
+            const isLocked = entry.status === "locked";
+            return (
+              <article
+                key={entry.id}
+                className={cn(
+                  "rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4",
+                  isLocked && "opacity-70",
+                )}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words font-semibold text-[var(--text)]">
+                      {facilityName(entry.facilityId)}
+                    </p>
+                    <p className="mt-0.5 break-words text-sm text-[var(--text-muted)]">
+                      {metricLabel(entry.metricId)}
+                    </p>
+                  </div>
+                  <StatusWorkflow
+                    status={entry.status}
+                    compact
+                    pulse={pulseId === entry.id}
+                  />
+                </div>
+                <p className="mt-2 break-words text-xs text-[var(--text-subtle)]">
+                  {formatPeriod(entry.periodStart, entry.periodEnd)}
+                </p>
+                <p className="mt-2 text-lg font-bold tabular-nums text-[var(--text)]">
+                  {entry.value.toLocaleString()}
+                </p>
+                <div className="mt-3 border-t border-[var(--border)] pt-3">
+                  {renderActions(entry)}
+                </div>
+              </article>
+            );
+          })}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="scroll-themed mt-4 hidden min-w-0 max-h-[640px] overflow-x-auto overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] md:block">
+        <table className="w-full min-w-[36rem] border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-[var(--surface-muted)] text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
             <tr>
               <th className="px-3 py-2.5 text-left">Facility</th>
@@ -275,7 +402,6 @@ export function EntriesTable({
 
             {!loading &&
               entries.map((entry) => {
-                const next = nextStatus(entry.status);
                 const isLocked = entry.status === "locked";
 
                 return (
@@ -286,14 +412,20 @@ export function EntriesTable({
                       isLocked && "opacity-60",
                     )}
                   >
-                    <td className="px-3 py-3 font-medium">{facilityName(entry.facilityId)}</td>
-                    <td className="px-3 py-3 text-[var(--text-muted)]">
-                      {metricLabel(entry.metricId)}
-                      <span className="mt-0.5 block text-[11px] text-[var(--text-subtle)]">
+                    <td className="max-w-[10rem] px-3 py-3 font-medium">
+                      <span className="block break-words">
+                        {facilityName(entry.facilityId)}
+                      </span>
+                    </td>
+                    <td className="max-w-[12rem] px-3 py-3 text-[var(--text-muted)]">
+                      <span className="block break-words">
+                        {metricLabel(entry.metricId)}
+                      </span>
+                      <span className="mt-0.5 block break-words text-[11px] text-[var(--text-subtle)]">
                         {formatPeriod(entry.periodStart, entry.periodEnd)}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-right tabular-nums font-medium">
+                    <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums font-medium">
                       {entry.value.toLocaleString()}
                     </td>
                     <td className="px-3 py-3">
@@ -303,43 +435,7 @@ export function EntriesTable({
                         pulse={pulseId === entry.id}
                       />
                     </td>
-                    <td className="px-3 py-3">
-                      <div className="flex justify-end gap-1.5">
-                        <button
-                          type="button"
-                          disabled={isLocked}
-                          onClick={() => onEdit(entry)}
-                          title={
-                            isLocked
-                              ? "This record is locked and audit-sealed"
-                              : "Edit entry value"
-                          }
-                          className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <Pencil className="h-3 w-3" />
-                          Edit
-                        </button>
-                        {next && (
-                          <motion.button
-                            type="button"
-                            disabled={advancingId === entry.id}
-                            whileTap={{ scale: 0.96 }}
-                            onClick={() => void handleAdvanceStatus(entry)}
-                            className="rounded-md bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-60"
-                          >
-                            {statusAdvanceLabel(next)}
-                          </motion.button>
-                        )}
-                        {isLocked && (
-                          <span
-                            className="inline-flex items-center text-[var(--text-muted)]"
-                            title="Audit-sealed"
-                          >
-                            <Lock className="h-4 w-4" />
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                    <td className="px-3 py-3">{renderActions(entry)}</td>
                   </tr>
                 );
               })}

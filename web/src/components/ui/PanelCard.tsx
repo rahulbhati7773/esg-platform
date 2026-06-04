@@ -23,7 +23,7 @@ export function PanelCard({
   return (
     <Component
       {...motionProps}
-      className={cn("surface-card p-5", className)}
+      className={cn("surface-card min-w-0 overflow-hidden p-4 sm:p-5", className)}
     >
       {children}
     </Component>

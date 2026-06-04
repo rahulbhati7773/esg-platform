@@ -99,10 +99,13 @@ function Step1({
                 )}>
                   <Building2 className="h-4 w-4" />
                 </span>
-                <span className={cn(
-                  "text-xs font-semibold leading-tight",
-                  active ? "text-[var(--text)]" : "text-[var(--text-muted)]",
-                )}>
+                <span
+                  className={cn(
+                    "line-clamp-2 text-xs font-semibold leading-tight",
+                    active ? "text-[var(--text)]" : "text-[var(--text-muted)]",
+                  )}
+                  title={f.name}
+                >
                   {f.name}
                 </span>
                 {f.location && (
@@ -277,9 +280,16 @@ function Step3({
         </h3>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] divide-y divide-[var(--border)]">
           {summary.map((row) => (
-            <div key={row.label} className="flex items-center justify-between px-4 py-2.5">
-              <span className="text-xs text-[var(--text-muted)]">{row.label}</span>
-              <span className="text-xs font-semibold text-[var(--text)]">{row.value}</span>
+            <div
+              key={row.label}
+              className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 px-4 py-2.5"
+            >
+              <span className="shrink-0 text-xs text-[var(--text-muted)]">
+                {row.label}
+              </span>
+              <span className="min-w-0 break-words text-right text-xs font-semibold text-[var(--text)]">
+                {row.value}
+              </span>
             </div>
           ))}
         </div>
@@ -404,7 +414,7 @@ export function NewEntryWizard() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[640px]">
+    <div className="page-container max-w-[640px] min-w-0">
       {/* Back link */}
       <div className="mb-6 flex items-center gap-2">
         <motion.button
@@ -419,13 +429,15 @@ export function NewEntryWizard() {
       </div>
 
       {/* Title */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
+      <div className="mb-6 flex min-w-0 items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
           <FilePlus2 className="h-5 w-5 text-[var(--primary)]" />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-[var(--text)]">New ESG Entry</h1>
-          <p className="text-sm text-[var(--text-muted)]">
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold text-[var(--text)] sm:text-xl">
+            New ESG Entry
+          </h1>
+          <p className="break-words text-sm text-[var(--text-muted)]">
             Step {step + 1} of {STEPS.length} — {STEPS[step]}
           </p>
         </div>
@@ -519,15 +531,15 @@ export function NewEntryWizard() {
         )}
 
         {/* Navigation */}
-        <div className="mt-6 flex items-center justify-between border-t border-[var(--border)] pt-5">
+        <div className="mt-6 flex flex-col-reverse gap-3 border-t border-[var(--border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <motion.button
             type="button"
             whileTap={{ scale: 0.96 }}
             onClick={() => go(step - 1)}
             disabled={step === 0}
-            className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2.5 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:pointer-events-none disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2.5 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:pointer-events-none disabled:opacity-40 sm:w-auto"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 shrink-0" />
             Back
           </motion.button>
 
@@ -537,10 +549,10 @@ export function NewEntryWizard() {
               whileTap={{ scale: 0.96 }}
               onClick={() => go(step + 1)}
               disabled={step === 0 ? !step1Valid : !step2Valid}
-              className="flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:pointer-events-none disabled:opacity-40"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:pointer-events-none disabled:opacity-40 sm:w-auto"
             >
               Continue
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4 shrink-0" />
             </motion.button>
           ) : (
             <motion.button
@@ -548,7 +560,7 @@ export function NewEntryWizard() {
               whileTap={{ scale: 0.96 }}
               onClick={() => void handleSubmit()}
               disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:opacity-60 sm:w-auto"
             >
               {submitting ? (
                 <>

@@ -16,7 +16,8 @@ import { useAuth } from "../../context/AuthContext.js";
 import { cn } from "../../lib/cn.js";
 import { staggerContainer, staggerItem } from "../../lib/motion.js";
 import type { EsgEntry, Facility, Metric } from "../../types.js";
-import { nextStatus, statusAdvanceLabel } from "../../utils/entryStatus.js";
+import { nextStatusForRole } from "../../lib/entryPermissions.js";
+import { statusAdvanceLabel } from "../../utils/entryStatus.js";
 
 function EntryCard({
   entry,
@@ -31,7 +32,7 @@ function EntryCard({
   onAdvance: (id: number) => void;
   advancing: boolean;
 }) {
-  const next = nextStatus(entry.status);
+  const next = nextStatusForRole(entry.status, "auditor");
   const label = next ? statusAdvanceLabel(next) : null;
   const facility = facilityMap.get(entry.facilityId);
   const metric = metricMap.get(entry.metricId);
@@ -137,7 +138,7 @@ export function AuditorHome() {
   async function handleAdvance(id: number) {
     const entry = entries.find((e) => e.id === id);
     if (!entry) return;
-    const next = nextStatus(entry.status);
+    const next = nextStatusForRole(entry.status, "auditor");
     if (!next) return;
     setAdvancingId(id);
     try {

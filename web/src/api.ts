@@ -28,6 +28,21 @@ export const apiClient = axios.create({
   },
 });
 
+apiClient.interceptors.request.use((config) => {
+  try {
+    const raw = sessionStorage.getItem("esg-auth-session");
+    if (raw) {
+      const user = JSON.parse(raw) as { role?: string };
+      if (user.role) {
+        config.headers.set("X-App-Role", user.role);
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return config;
+});
+
 function formatPeriod({ periodStart, periodEnd }: PeriodQuery): string {
   return `${periodStart},${periodEnd}`;
 }

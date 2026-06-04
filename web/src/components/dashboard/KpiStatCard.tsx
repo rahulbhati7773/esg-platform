@@ -25,10 +25,10 @@ export function KpiStatCard({
   trendPositive = true,
 }: KpiStatCardProps) {
   return (
-    <motion.div variants={staggerItem} className="surface-card p-5">
+    <motion.div variants={staggerItem} className="surface-card min-w-0 p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--text-muted)]">
+          <p className="break-words text-sm font-medium text-[var(--text-muted)]">
             {label}
           </p>
           {loading ? (
@@ -50,7 +50,7 @@ export function KpiStatCard({
       {!loading && trendText && (
         <p
           className={cn(
-            "mt-4 flex items-center gap-1.5 text-xs font-medium",
+            "mt-4 flex min-w-0 flex-wrap items-center gap-1.5 break-words text-xs font-medium",
             trendPositive
               ? "text-green-700 dark:text-green-400"
               : "text-red-600 dark:text-red-400",

@@ -174,7 +174,7 @@ export function Login() {
           </p>
 
           {/* Role selector */}
-          <div className="mb-5 grid grid-cols-3 gap-2">
+          <div className="mb-5 grid grid-cols-1 gap-2 min-[400px]:grid-cols-3">
             {ROLES.map((r, i) => {
               const Icon = r.icon;
               const active = selectedRole === r.role;
@@ -210,7 +210,7 @@ export function Login() {
                   </div>
                   <span
                     className={cn(
-                      "text-[11px] font-semibold leading-tight transition-colors",
+                      "break-words text-[11px] font-semibold leading-tight transition-colors",
                       active ? "text-[var(--text)]" : "text-[var(--text-muted)]",
                     )}
                   >

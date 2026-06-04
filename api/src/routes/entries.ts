@@ -1,13 +1,21 @@
 import { Router } from "express";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import {
+  assertCanCreate,
+  assertCanEditEntryValue,
+  assertStatusTransitionAllowed,
+  parseAppRole,
+} from "../lib/entryPermissions.js";
+import {
   createEntry,
+  getEntryById,
   listEntries,
   setStatus,
   updateEntry,
 } from "../services/entries.js";
 import {
   createEntrySchema,
+  entryStatusSchema,
   idParamSchema,
   listEntriesQuerySchema,
   updateEntrySchema,
@@ -28,6 +36,7 @@ entriesRouter.get(
 entriesRouter.post(
   "/",
   asyncHandler(async (req, res) => {
+    assertCanCreate(parseAppRole(req.header("x-app-role")));
     const input = createEntrySchema.parse(req.body);
     const entry = await createEntry(input);
     res.status(201).json(entry);
@@ -37,7 +46,14 @@ entriesRouter.post(
 entriesRouter.put(
   "/:id",
   asyncHandler(async (req, res) => {
+    const role = parseAppRole(req.header("x-app-role"));
     const { id } = idParamSchema.parse(req.params);
+    const existing = await getEntryById(id);
+    if (!existing) {
+      res.status(404).json({ error: `Entry ${id} not found`, code: "NOT_FOUND" });
+      return;
+    }
+    assertCanEditEntryValue(role, existing.status);
     const input = updateEntrySchema.parse(req.body);
     const entry = await updateEntry(id, input);
     res.json(entry);
@@ -47,9 +63,17 @@ entriesRouter.put(
 entriesRouter.patch(
   "/:id/status",
   asyncHandler(async (req, res) => {
+    const role = parseAppRole(req.header("x-app-role"));
     const { id } = idParamSchema.parse(req.params);
-    const { status } = updateEntryStatusSchema.parse(req.body);
-    const entry = await setStatus(id, status);
+    const existing = await getEntryById(id);
+    if (!existing) {
+      res.status(404).json({ error: `Entry ${id} not found`, code: "NOT_FOUND" });
+      return;
+    }
+    const { status: nextStatus } = updateEntryStatusSchema.parse(req.body);
+    const currentStatus = entryStatusSchema.parse(existing.status);
+    assertStatusTransitionAllowed(role, currentStatus, nextStatus);
+    const entry = await setStatus(id, nextStatus);
     res.json(entry);
   }),
 );

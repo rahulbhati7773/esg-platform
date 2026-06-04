@@ -66,7 +66,7 @@ export function GlobalControllerPanel() {
           <h2 className="text-sm font-semibold text-[var(--text)]">
             Report filters
           </h2>
-          <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+          <p className="mt-0.5 break-words text-sm text-[var(--text-muted)]">
             {period.periodStart} – {period.periodEnd}
           </p>
         </div>
@@ -145,13 +145,12 @@ export function GlobalControllerPanel() {
 
         <div className="min-w-0 flex-1">
           <span className="label-caps">Facilities</span>
-          <div className="overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:thin]">
-            <div className="flex flex-nowrap gap-2">
+          <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setFacilityIds([])}
                 className={cn(
-                  "chip shrink-0 whitespace-nowrap",
+                  "chip max-w-full truncate",
                   facilityIds.length === 0 && "chip-active",
                 )}
               >
@@ -165,15 +164,15 @@ export function GlobalControllerPanel() {
                     type="button"
                     onClick={() => toggleFacility(facility.id)}
                     className={cn(
-                      "chip shrink-0 whitespace-nowrap",
+                      "chip max-w-full truncate",
                       selected && "chip-active",
                     )}
+                    title={facility.name}
                   >
                     {facility.name}
                   </button>
                 );
               })}
-            </div>
           </div>
           {facilityIds.length > 1 && (
             <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">

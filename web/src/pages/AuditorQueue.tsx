@@ -19,7 +19,8 @@ import { Skeleton } from "../components/ui/Skeleton.js";
 import { cn } from "../lib/cn.js";
 import { staggerContainer, staggerItem } from "../lib/motion.js";
 import type { EsgEntry, Facility, Metric } from "../types.js";
-import { nextStatus, statusAdvanceLabel } from "../utils/entryStatus.js";
+import { nextStatusForRole } from "../lib/entryPermissions.js";
+import { statusAdvanceLabel } from "../utils/entryStatus.js";
 
 const STATUS_META: Record<string, { label: string; color: string; dot: string }> = {
   submitted: {
@@ -48,7 +49,7 @@ function EntryCard({
   advancing: boolean;
 }) {
   const meta = STATUS_META[entry.status] ?? STATUS_META["submitted"];
-  const next = nextStatus(entry.status);
+  const next = nextStatusForRole(entry.status, "auditor");
   const label = next ? statusAdvanceLabel(next) : null;
   const facility = facilityMap.get(entry.facilityId);
   const metric = metricMap.get(entry.metricId);
@@ -177,7 +178,7 @@ export function AuditorQueue() {
   async function handleAdvance(id: number) {
     const entry = entries.find((e) => e.id === id);
     if (!entry) return;
-    const next = nextStatus(entry.status);
+    const next = nextStatusForRole(entry.status, "auditor");
     if (!next) return;
     setAdvancingId(id);
     try {

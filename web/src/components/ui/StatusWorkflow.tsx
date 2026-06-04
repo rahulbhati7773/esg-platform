@@ -51,12 +51,12 @@ export function StatusWorkflow({
         animate={pulse ? { scale: [1, 1.03, 1] } : undefined}
         transition={springSnappy}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium",
+          "inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium",
           meta.className,
         )}
       >
-        <Icon className="h-3.5 w-3.5" aria-hidden />
-        {meta.label}
+        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span className="truncate">{meta.label}</span>
       </motion.span>
     );
   }

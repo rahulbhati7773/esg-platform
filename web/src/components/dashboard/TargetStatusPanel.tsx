@@ -74,8 +74,8 @@ export function TargetStatusPanel() {
           <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
         )}
 
-        <div className="scroll-themed mt-5 overflow-x-auto rounded-xl border border-[var(--border)]">
-          <table className="w-full min-w-[640px] border-collapse text-sm">
+        <div className="scroll-themed mt-5 min-w-0 overflow-x-auto rounded-xl border border-[var(--border)]">
+          <table className="w-full min-w-[32rem] border-collapse text-sm">
             <thead className="bg-[var(--surface-muted)] text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
               <tr>
                 <th className="px-3 py-2.5 text-left">Metric</th>
@@ -112,11 +112,13 @@ export function TargetStatusPanel() {
                     key={`${row.metric}-${row.facility ?? "all"}`}
                     className="border-t border-[var(--border)] hover:bg-[var(--surface-muted)]"
                   >
-                    <td className="px-3 py-2.5 font-medium text-[var(--text)]">
-                      {row.metric}
+                    <td className="max-w-[12rem] px-3 py-2.5 font-medium text-[var(--text)]">
+                      <span className="block break-words">{row.metric}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-[var(--text-muted)]">
-                      {row.facility ?? "All facilities"}
+                    <td className="max-w-[10rem] px-3 py-2.5 text-[var(--text-muted)]">
+                      <span className="block break-words">
+                        {row.facility ?? "All facilities"}
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">
                       {row.actual.toLocaleString()}

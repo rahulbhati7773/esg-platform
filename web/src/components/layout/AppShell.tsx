@@ -12,7 +12,7 @@ export function AppShell() {
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col">
             <TopBar />
-            <main className="scroll-themed flex-1 p-4 sm:p-5 lg:p-6">
+            <main className="scroll-themed min-w-0 flex-1 overflow-x-hidden p-4 sm:p-5 lg:p-6">
               <Outlet />
             </main>
           </div>

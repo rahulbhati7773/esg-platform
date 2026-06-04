@@ -51,8 +51,8 @@ export function ComplianceRagPanel() {
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-      <div className="mt-4 overflow-x-auto rounded-lg border border-slate-100">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
+      <div className="mt-4 min-w-0 overflow-x-auto rounded-lg border border-slate-100">
+        <table className="w-full min-w-[32rem] border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <th className="px-4 py-3">Metric</th>
@@ -87,11 +87,13 @@ export function ComplianceRagPanel() {
                   transition={{ delay: index * 0.03 }}
                   className="border-b border-slate-100 transition-colors hover:bg-slate-50"
                 >
-                  <td className="px-4 py-3 font-medium text-slate-800">
-                    {row.metric}
+                  <td className="max-w-[12rem] px-4 py-3 font-medium text-slate-800">
+                    <span className="block break-words">{row.metric}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {row.facility ?? "All facilities"}
+                  <td className="max-w-[10rem] px-4 py-3 text-slate-600">
+                    <span className="block break-words">
+                      {row.facility ?? "All facilities"}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-slate-800">
                     {row.actual.toLocaleString()}

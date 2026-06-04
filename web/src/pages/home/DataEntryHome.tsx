@@ -99,7 +99,7 @@ export function DataEntryHome() {
       variants={staggerContainer}
       initial="hidden"
       animate="show"
-      className="mx-auto w-full max-w-[1000px] space-y-6"
+      className="page-container max-w-[1000px] space-y-6"
     >
       {/* Welcome */}
       <motion.div variants={staggerItem} className="surface-card p-5 sm:p-6">
@@ -138,7 +138,7 @@ export function DataEntryHome() {
         {/* New Entry CTA */}
         <Link
           to="/entries/new"
-          className="group flex min-w-[180px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--primary)]/40 bg-[var(--primary-soft)] p-5 text-center transition hover:border-[var(--primary)] hover:shadow-sm"
+          className="group flex w-full min-w-0 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--primary)]/40 bg-[var(--primary-soft)] p-5 text-center transition hover:border-[var(--primary)] hover:shadow-sm sm:min-w-[180px] sm:w-auto"
         >
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/30 transition group-hover:scale-105">
             <FilePlus2 className="h-5 w-5" />
@@ -190,13 +190,13 @@ export function DataEntryHome() {
                 return (
                   <div
                     key={entry.id}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-muted)]"
+                    className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 hover:bg-[var(--surface-muted)] sm:flex-nowrap"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-[var(--text)]">
+                    <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                      <p className="break-words text-sm font-medium text-[var(--text)]">
                         {facility?.name ?? `Facility #${entry.facilityId}`}
                       </p>
-                      <p className="truncate text-xs text-[var(--text-muted)]">
+                      <p className="break-words text-xs text-[var(--text-muted)]">
                         {metric?.name ?? `Metric #${entry.metricId}`}
                         {metric?.unit && <span className="ml-1">· {metric.unit}</span>}
                       </p>

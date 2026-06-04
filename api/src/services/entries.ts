@@ -105,6 +105,13 @@ export async function createEntry(
   });
 }
 
+export async function getEntryById(id: number): Promise<EntryWithAudits | null> {
+  return prisma.esgEntry.findUnique({
+    where: { id },
+    include: { audits: { orderBy: { changedAt: "asc" } } },
+  });
+}
+
 export async function updateEntry(
   id: number,
   input: UpdateEntryInput,

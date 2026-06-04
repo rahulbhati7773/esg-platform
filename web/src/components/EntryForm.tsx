@@ -165,8 +165,8 @@ export function EntryForm({
   });
 
   return (
-    <PanelCard>
-      <div className="flex items-center gap-2">
+    <PanelCard className="min-w-0">
+      <div className="flex min-w-0 items-center gap-2">
         <FilePlus2 className="h-5 w-5 text-[var(--primary)]" />
         <h3 className="text-sm font-semibold text-[var(--text)]">
           {isEditMode ? "Edit entry" : "New entry"}

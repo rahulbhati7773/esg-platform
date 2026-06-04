@@ -42,8 +42,10 @@ export function FormSelect({
       disabled={disabled}
     >
       <Select.Trigger id={id} className="form-trigger" aria-label={ariaLabel}>
-        <Select.Value placeholder={placeholder} />
-        <Select.Icon className="form-trigger-icon">
+        <span className="form-trigger-value">
+          <Select.Value placeholder={placeholder} />
+        </span>
+        <Select.Icon className="form-trigger-icon shrink-0">
           <ChevronDown className="h-4 w-4" aria-hidden />
         </Select.Icon>
       </Select.Trigger>

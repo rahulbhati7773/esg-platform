@@ -17,7 +17,7 @@ export function Toast({ message, variant }: ToastProps) {
       exit={{ opacity: 0, y: 8 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className={cn(
-        "fixed bottom-6 right-6 z-[100] flex max-w-sm items-center gap-3 rounded-xl border px-4 py-3 shadow-lg",
+        "fixed bottom-4 left-4 right-4 z-[100] flex max-w-sm items-start gap-3 rounded-xl border px-4 py-3 shadow-lg sm:left-auto sm:right-6 sm:bottom-6",
         isSuccess
           ? "border-green-200 bg-green-50 text-green-900"
           : "border-red-200 bg-red-50 text-red-900",
@@ -29,7 +29,7 @@ export function Toast({ message, variant }: ToastProps) {
       ) : (
         <XCircle className="h-5 w-5 shrink-0" />
       )}
-      <p className="text-sm font-medium">{message}</p>
+      <p className="min-w-0 flex-1 break-words text-sm font-medium">{message}</p>
     </motion.div>
   );
 }

@@ -2,6 +2,7 @@ import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
 import { config } from "../config.js";
 import { EntryServiceError } from "../errors.js";
+import { EntryPermissionError } from "../lib/entryPermissions.js";
 import { formatZodFieldErrors } from "./zodFieldErrors.js";
 
 export const notFoundHandler: RequestHandler = (_req, res) => {
@@ -16,6 +17,11 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
 
   if (err instanceof ZodError) {
     res.status(400).json({ fieldErrors: formatZodFieldErrors(err) });
+    return;
+  }
+
+  if (err instanceof EntryPermissionError) {
+    res.status(403).json({ error: err.message, code: err.code });
     return;
   }
 

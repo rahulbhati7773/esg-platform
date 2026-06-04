@@ -4,17 +4,24 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getFacilities, getMetrics } from "../api.js";
 import { EntriesTable } from "../components/EntriesTable.js";
+import { EntryForm } from "../components/EntryForm.js";
 import { Toast } from "../components/Toast.js";
 import { useAuth } from "../context/AuthContext.js";
+import {
+  canEditEntry,
+  entryPermissionsForRole,
+} from "../lib/entryPermissions.js";
 import { staggerContainer, staggerItem } from "../lib/motion.js";
 import type { EsgEntry, Facility, Metric } from "../types.js";
 
 export function EntriesPage() {
   const { user } = useAuth();
-  const canCreate = user?.role === "data-entry";
+  const role = user?.role ?? "data-entry";
+  const permissions = entryPermissionsForRole(role);
 
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [editingEntry, setEditingEntry] = useState<EsgEntry | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [toast, setToast] = useState<{
     message: string;
@@ -44,17 +51,20 @@ export function EntriesPage() {
     })();
   }, []);
 
-  // EntriesPage is view-only for admin/auditor — no edit action
   const handleEdit = useCallback(
     (entry: EsgEntry) => {
-      if (canCreate) {
-        // data-entry role can still edit, show toast if locked
+      if (!canEditEntry(entry, permissions, role)) {
         if (entry.status === "locked") {
           showToast("This record is locked and cannot be edited.", "error");
+        } else if (role === "data-entry" && entry.status !== "draft") {
+          showToast("Only draft entries can be edited. Submit for review first.", "error");
         }
+        return;
       }
+      setEditingEntry(entry);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [canCreate, showToast],
+    [permissions, role, showToast],
   );
 
   return (
@@ -62,30 +72,32 @@ export function EntriesPage() {
       variants={staggerContainer}
       initial="hidden"
       animate="show"
-      className="mx-auto w-full max-w-[1200px] space-y-5 sm:space-y-6"
+      className="page-container space-y-5 sm:space-y-6"
     >
       {/* Header */}
       <motion.div
         variants={staggerItem}
-        className="flex items-center justify-between gap-4"
+        className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
       >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
             <Table2 className="h-5 w-5 text-[var(--primary)]" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-[var(--text)]">
-              {canCreate ? "My Entries" : "All Entries"}
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-[var(--text)] sm:text-xl">
+              {permissions.canCreate ? "My Entries" : "All Entries"}
             </h1>
-            <p className="text-sm text-[var(--text-muted)]">
-              {canCreate
-                ? "View and manage your submitted ESG records"
-                : "Browse all ESG records across facilities"}
+            <p className="break-words text-sm text-[var(--text-muted)]">
+              {permissions.canCreate
+                ? "Create and edit your ESG records until they are locked"
+                : permissions.canChangeStatus
+                  ? "Review entries and approve or lock them for audit"
+                  : "Browse all ESG records across facilities"}
             </p>
           </div>
         </div>
 
-        {canCreate && (
+        {permissions.canCreate && (
           <Link
             to="/entries/new"
             className="btn-primary flex shrink-0 items-center gap-2"
@@ -95,6 +107,23 @@ export function EntriesPage() {
           </Link>
         )}
       </motion.div>
+
+      {permissions.canEdit && editingEntry && (
+        <motion.div variants={staggerItem}>
+          <EntryForm
+            facilities={facilities}
+            metrics={metrics}
+            editingEntry={editingEntry}
+            onSuccess={(message) => {
+              showToast(message);
+              setEditingEntry(null);
+              refreshEntries();
+            }}
+            onError={(message) => showToast(message, "error")}
+            onCancelEdit={() => setEditingEntry(null)}
+          />
+        </motion.div>
+      )}
 
       {loadError && (
         <motion.p
