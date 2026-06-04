@@ -29,35 +29,35 @@ const MOCK_CREDENTIALS: Record<
   { email: string; password: string; user: AuthUser }
 > = {
   "data-entry": {
-    email: "sara.chen@esg-demo.com",
+    email: "rahul.sharma@esgmeteor.in",
     password: "entry123",
     user: {
-      name: "Sara Chen",
-      email: "sara.chen@esg-demo.com",
+      name: "Rahul Sharma",
+      email: "rahul.sharma@esgmeteor.in",
       role: "data-entry",
-      initials: "SC",
+      initials: "RS",
       title: "Data Entry Specialist",
     },
   },
   auditor: {
-    email: "james.okonkwo@esg-demo.com",
+    email: "shresht.gupta@esgmeteor.in",
     password: "audit123",
     user: {
-      name: "James Okonkwo",
-      email: "james.okonkwo@esg-demo.com",
+      name: "Shresht Gupta",
+      email: "shresht.gupta@esgmeteor.in",
       role: "auditor",
-      initials: "JO",
+      initials: "SG",
       title: "ESG Auditor",
     },
   },
   admin: {
-    email: "priya.mehta@esg-demo.com",
+    email: "hitesh.singh@esgmeteor.in",
     password: "admin123",
     user: {
-      name: "Priya Mehta",
-      email: "priya.mehta@esg-demo.com",
+      name: "Hitesh Singh",
+      email: "hitesh.singh@esgmeteor.in",
       role: "admin",
-      initials: "PM",
+      initials: "HS",
       title: "Platform Administrator",
     },
   },

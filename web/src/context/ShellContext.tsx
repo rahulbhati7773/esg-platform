@@ -13,9 +13,14 @@ type ShellContextValue = {
   mobileOpen: boolean;
   /** Desktop icon-only mode */
   collapsed: boolean;
+  /** Right-side glossary panel (macOS-style) */
+  glossaryOpen: boolean;
   isMobile: boolean;
   toggleSidebar: () => void;
   closeMobile: () => void;
+  openGlossary: () => void;
+  closeGlossary: () => void;
+  toggleGlossary: () => void;
 };
 
 const ShellContext = createContext<ShellContextValue | null>(null);
@@ -25,6 +30,7 @@ const MOBILE_QUERY = "(max-width: 767px)";
 export function ShellProvider({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined"
       ? window.matchMedia(MOBILE_QUERY).matches
@@ -47,15 +53,14 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isMobile || !mobileOpen) {
-      document.body.style.overflow = "";
-      return;
+    if ((isMobile && mobileOpen) || glossaryOpen) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
     }
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMobile, mobileOpen]);
+    document.body.style.overflow = "";
+  }, [isMobile, mobileOpen, glossaryOpen]);
 
   const toggleSidebar = useCallback(() => {
     if (window.matchMedia(MOBILE_QUERY).matches) {
@@ -69,15 +74,47 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     setMobileOpen(false);
   }, []);
 
+  const openGlossary = useCallback(() => {
+    setGlossaryOpen(true);
+    setMobileOpen(false);
+  }, []);
+
+  const closeGlossary = useCallback(() => {
+    setGlossaryOpen(false);
+  }, []);
+
+  const toggleGlossary = useCallback(() => {
+    setGlossaryOpen((open) => {
+      if (!open) {
+        setMobileOpen(false);
+      }
+      return !open;
+    });
+  }, []);
+
   const value = useMemo(
     () => ({
       mobileOpen,
       collapsed,
+      glossaryOpen,
       isMobile,
       toggleSidebar,
       closeMobile,
+      openGlossary,
+      closeGlossary,
+      toggleGlossary,
     }),
-    [mobileOpen, collapsed, isMobile, toggleSidebar, closeMobile],
+    [
+      mobileOpen,
+      collapsed,
+      glossaryOpen,
+      isMobile,
+      toggleSidebar,
+      closeMobile,
+      openGlossary,
+      closeGlossary,
+      toggleGlossary,
+    ],
   );
 
   return (

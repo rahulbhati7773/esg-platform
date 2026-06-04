@@ -166,9 +166,9 @@ On the login screen, choose a **role**, then sign in with the demo credentials b
 
 | Role | Email | Password |
 |------|-------|----------|
-| Data entry | `sara.chen@esg-demo.com` | `entry123` |
-| Auditor | `james.okonkwo@esg-demo.com` | `audit123` |
-| Admin | `priya.mehta@esg-demo.com` | `admin123` |
+| Data entry | `rahul.sharma@esgmeteor.in` | `entry123` |
+| Auditor | `shresht.gupta@esgmeteor.in` | `audit123` |
+| Admin | `hitesh.singh@esgmeteor.in` | `admin123` |
 
 **Suggested checks:**
 

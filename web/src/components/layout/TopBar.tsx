@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Database, LogOut, Menu, Moon, Sun } from "lucide-react";
+import { CircleHelp, Database, LogOut, Menu, Moon, Sun } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.js";
@@ -17,7 +17,7 @@ const ROLE_COLORS: Record<string, { bg: string; text: string; label: string }> =
 export function TopBar() {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
-  const { toggleSidebar } = useShell();
+  const { toggleSidebar, toggleGlossary, glossaryOpen } = useShell();
   const connectivity = useApiConnectivity();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -67,6 +67,27 @@ export function TopBar() {
           ) : (
             <Sun className="h-[18px] w-[18px]" />
           )}
+        </motion.button>
+
+        {/* Glossary / definitions (right sidebar) */}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.96 }}
+          onClick={() => {
+            setMenuOpen(false);
+            toggleGlossary();
+          }}
+          className={cn(
+            "flex h-10 w-10 items-center justify-center rounded-xl border text-[var(--text-muted)] transition hover:text-[var(--text)]",
+            glossaryOpen
+              ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]"
+              : "border-[var(--border)] bg-[var(--surface-muted)]",
+          )}
+          aria-label="Open terms and definitions"
+          aria-expanded={glossaryOpen}
+          title="Terms & definitions (ESG, GHG, RAG…)"
+        >
+          <CircleHelp className="h-[18px] w-[18px]" />
         </motion.button>
 
         {/* API status */}

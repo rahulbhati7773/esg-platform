@@ -6,6 +6,7 @@ import { usePlatformFilters } from "../../context/PlatformContext.js";
 import { cn } from "../../lib/cn.js";
 import { fadeIn } from "../../lib/motion.js";
 import { PanelCard } from "../ui/PanelCard.js";
+import { RagStatusHelp } from "../ui/RagStatusHelp.js";
 import { Skeleton } from "../ui/Skeleton.js";
 import type { RagStatus, TargetStatusItem } from "../../types.js";
 
@@ -82,7 +83,12 @@ export function TargetStatusPanel() {
                 <th className="px-3 py-2.5 text-left">Facility</th>
                 <th className="px-3 py-2.5 text-right">Actual</th>
                 <th className="px-3 py-2.5 text-right">Target</th>
-                <th className="px-3 py-2.5 text-left">Status</th>
+                <th className="px-3 py-2.5 text-left">
+                  <span className="inline-flex items-center gap-1">
+                    Status
+                    <RagStatusHelp />
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -132,6 +138,7 @@ export function TargetStatusPanel() {
                           "inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize",
                           ragClass(row.rag),
                         )}
+                        title={`${row.rag}: actual ${row.actual.toLocaleString()} vs target ${row.target.toLocaleString()}`}
                       >
                         {row.rag}
                       </span>

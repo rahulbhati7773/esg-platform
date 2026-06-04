@@ -2,6 +2,19 @@
 
 This document explains what ESG is, why this project exists, how the platform works, and what each page, component, chart, and tab does.
 
+### Guide coverage (read this first)
+
+| Document | Best for |
+| -------- | -------- |
+| **This file (`ESG-PLATFORM-GUIDE.md`)** | Product behaviour: pages, UI regions, charts, roles, workflows, field meanings |
+| **`esg-platform-architecture.md`** | Technical architecture, schema diagrams, deployment shape |
+| **`README.md`** | Clone, install, run, demo logins |
+| **In-app ? (TopBar)** | Searchable acronyms — data in `web/src/lib/glossary.ts` |
+
+**Fully documented in this guide:** all routed pages (§6), active dashboard building blocks on Analytics/Targets/Benchmarks (§6–7), data entry flow (§8), app shell (§9), API surface used by the UI (§10).
+
+**Also documented below (§15–17):** hooks, permission headers, export/report contents, help UI (`GlossarySidebar`, `RagStatusHelp`), toasts/validation, period presets, and **legacy components** that exist in the repo but are **not** mounted on current routes.
+
 ---
 
 ## 1. What is ESG?
@@ -196,9 +209,9 @@ The app uses **role-based navigation** (demo auth on the Login page).
 
 | Role           | Login (demo)                              | Sidebar items                                                    |
 | -------------- | ----------------------------------------- | ---------------------------------------------------------------- |
-| **Data entry** | `sara.chen@esg-demo.com` / `entry123`     | Dashboard, Analytics, New entry, My entries                      |
-| **Auditor**    | `james.okonkwo@esg-demo.com` / `audit123` | Dashboard, Analytics, Targets, All entries                       |
-| **Admin**      | `admin@esg-demo.com` / `admin123`         | Dashboard, Analytics, Targets, Benchmarks, People & Gov, Entries |
+| **Data entry** | `rahul.sharma@esgmeteor.in` / `entry123` (Rahul Sharma)     | Dashboard, Analytics, New entry, My entries                      |
+| **Auditor**    | `shresht.gupta@esgmeteor.in` / `audit123` (Shresht Gupta) | Dashboard, Analytics, Targets, All entries                       |
+| **Admin**      | `hitesh.singh@esgmeteor.in` / `admin123` (Hitesh Singh)    | Dashboard, Analytics, Targets, Benchmarks, People & Gov, Entries |
 
 
 Routes are defined in `web/src/App.tsx`. Some routes are restricted by role (e.g. Benchmarks admin-only, New entry data-entry-only).
@@ -223,12 +236,17 @@ Each page section below includes a **Layout (top to bottom)** breakdown: every m
 
 1. **Branded panel** — Product name, short description of ESG Meteor.
   **Why:** Context for first-time demo users.
-2. **Sign-in form** — Email, password, submit; demo credentials hint per role.
-  **Why:** Single gate before any shell layout (sidebar/top bar) appears.
-3. **Role quick-fill** (if present) — Buttons to autofill demo accounts.
-  **Why:** Speeds up testing data-entry vs auditor vs admin flows.
+2. **Role selector** (three cards: Data Entry / Auditor / Administrator)
+  Clicking a role auto-fills email and password from `AuthContext` mock credentials.  
+  **Why:** Demo personas (Rahul / Shresht / Hitesh) map 1:1 to roles without memorizing logins.
+3. **Sign-in form** — Email, password (show/hide), submit, inline error on failure.
+  **Why:** Single gate before `AppShell`; session stored in `sessionStorage` (`esg-auth-session`).
+4. **Theme toggle** (top-right of login screen)
+  **Why:** Same light/dark tokens as the main app (`ThemeContext`).
 
-*Login is outside `AppShell` — no sidebar or TopBar until authenticated.*
+**Demo accounts (see §5):** passwords stay `entry123` / `audit123` / `admin123`.
+
+*Login is outside `AppShell` — no sidebar, TopBar, or glossary until authenticated.*
 
 ---
 
@@ -296,7 +314,7 @@ Each page section below includes a **Layout (top to bottom)** breakdown: every m
   - **Data quality** (`DataQuality` panel) — submission/approval % rings and missing-data hints  
    **Why:** Combines “where to go next” with “is our data ready to report?” on one screen.
 
-**How:** Embeds shared dashboard widgets; quick links route to `/analytics`, `/entries`, `/targets`.
+**How:** Embeds shared dashboard widgets; quick links route to `/analytics`, `/entries`, and a third link labelled **Target Status** that currently also goes to **`/analytics`** (the dedicated targets page is **`/targets`** via the sidebar).
 
 ---
 
@@ -367,11 +385,15 @@ Each page section below includes a **Layout (top to bottom)** breakdown: every m
   For each metric (e.g. CO₂e, Water): section header with RAG dot per facility, then a grid of **TargetRow** cards. Each card shows facility, actual vs target, progress bar, % of target, and variance.  
    **Why:** Facility-level accountability — leadership sees which site missed which target.
 
-**RAG rules (API):**
+**RAG rules (API — `ragForActual` in `api/src/services/analytics.ts`):**
 
-- **Green** — actual within target  
-- **Amber** — within ~10% over target  
-- **Red** — beyond amber threshold
+| Status | Condition | Meaning |
+| ------ | --------- | ------- |
+| **green** | `actual ≤ target` | On or below target |
+| **amber** | `target < actual ≤ target × 1.1` | Over target but not more than 10% |
+| **red** | `actual > target × 1.1` | More than 10% above target |
+
+**Note:** Targets in seed data are **annual** values; if the global period is “Last 12 months”, actual may be a partial sum — many rows can look green. Use **Annual (2025)** in report filters for demo RAG variety.
 
 ---
 
@@ -542,7 +564,7 @@ These are the **building blocks** used inside page layouts (especially Analytics
 | -------- | ------------------------------------------------------------------------------------------ |
 | **What** | Stacked bar chart of **Emissions**, **Energy**, and **Water** by period.                   |
 | **Why**  | Shows combined environmental footprint shape over time.                                    |
-| **How**  | `listEntries` for period → aggregates by month via `chartData.ts` → Recharts stacked bars. |
+| **How**  | `listEntries` for period → aggregates by month in the client via `chartData.ts` (no dedicated stacked-chart API) → Recharts stacked bars. |
 
 
 ---
@@ -566,7 +588,21 @@ These are the **building blocks** used inside page layouts (especially Analytics
 | -------- | ------------------------------------------------------------------- |
 | **What** | Table of metrics with actual vs target and RAG badges.              |
 | **Why**  | Compact target view inside Analytics (full detail on Targets page). |
-| **How**  | Same `getTargets` data as Targets page, tabular layout.             |
+| **How**  | `getTargets(period, facilityId)` → `/analytics/targets`; tabular layout. |
+
+
+**Table columns**
+
+
+| Column | API field | Meaning |
+| ------ | --------- | ------- |
+| Metric | `metric` | Target metric name |
+| Facility | `facility` | Site name or “All facilities” |
+| Actual | `actual` | Sum of entry values overlapping report period |
+| Target | `target` | Configured `targetValue` |
+| Status | `rag` | green / amber / red (not draft/submitted) |
+
+**`RagStatusHelp` (? next to Status header):** Hover/focus popover explains RAG and the three formulas (see §6.4). Implemented in `web/src/components/ui/RagStatusHelp.tsx` using `web/src/lib/ragStatus.ts`.
 
 
 ---
@@ -576,9 +612,23 @@ These are the **building blocks** used inside page layouts (especially Analytics
 
 |          |                                                                                          |
 | -------- | ---------------------------------------------------------------------------------------- |
-| **What** | Side panel to compare two metrics or views (companion to target status on Analytics).    |
-| **Why**  | Supports quick comparative analysis without leaving the page.                            |
-| **How**  | Uses platform filters and metric selection; renders comparison UI from dashboard module. |
+| **What** | Sidebar “Compare” list beside `TargetStatusPanel` on Analytics (top 6 target rows).       |
+| **Why**  | Quick scan of over/under-target metrics without reading the full table.                   |
+| **How**  | Same `getTargets` API; shows cards with % variance vs target.                           |
+
+
+**Each compare card (fields)**
+
+
+| UI label | Source | Meaning |
+| -------- | ------ | ------- |
+| Title | `metric` (uppercased) | Which KPI |
+| Large number | `actual` | Period total |
+| Subtitle | `facility` | Site or “All facilities” |
+| Badge | `(actual − target) / target × 100` | % vs target; arrow up if over target |
+| Card colour | `rag === "green"` | Green-tinted if on track, red-tinted otherwise |
+
+**Why only six items:** `targets.slice(0, 6)` keeps the sidebar compact on narrow layouts.
 
 
 ---
@@ -595,9 +645,28 @@ These are the **building blocks** used inside page layouts (especially Analytics
 
 ---
 
-### 7.10 `KpiCards`, `EnvironmentalTrends`, `AnalyticsTabs`, `ComplianceRagPanel`
+### 7.10 In-app help: `GlossarySidebar` + `RagStatusHelp`
 
-Supporting or legacy dashboard pieces that may compose older layouts. The **Analytics** page primarily uses the components listed in Section 6.3 and 7.1–7.9.
+| Component | What | Why | How |
+| --------- | ---- | --- | --- |
+| **`GlossarySidebar`** | Right-side panel (macOS-style slide-in) with searchable definitions | Operators should decode ESG jargon without leaving the app | Opened from TopBar **?**; data from `web/src/lib/glossary.ts`; `ShellContext.glossaryOpen`; Esc or backdrop closes |
+| **`RagStatusHelp`** | Small **?** beside “Status” in `TargetStatusPanel` | Explains RAG vs workflow status and calculation rules | CSS `group-hover` popover; rules in `web/src/lib/ragStatus.ts` |
+
+---
+
+### 7.11 Legacy / alternate dashboard modules (not on current routes)
+
+These files exist in `web/src` but are **not** imported by `AnalyticsPage` or `App.tsx` today. Documented so you know they are not missing from the live app by accident.
+
+| Component | What it would do | Status |
+| --------- | ---------------- | ------ |
+| `AnalyticsTabs` | Tabbed Analytics (Overview / Compliance / Trends) wrapping `ComplianceRagPanel`, `EnvironmentalTrends`, etc. | Unused — `AnalyticsPage` uses a single scroll layout instead |
+| `AnalyticsDashboard` | Older combined analytics layout | Unused |
+| `ComplianceRagPanel` | Target vs actual table using `RagIndicator` dots (older styling) | Only referenced from `AnalyticsTabs` |
+| `KpiCards` | Alternate KPI grid | Unused — replaced by `HeroKpiRow` |
+| `EnvironmentalTrends` | Multi-metric trend section | Unused on current Analytics page |
+| `AuditorQueue` | Standalone queue page component | **Not routed** — auditor work happens on `AuditorHome` + `/entries` instead |
+| `DataEntry.tsx` | Legacy page | Redirect only → `/entries` (§6.9) |
 
 ---
 
@@ -625,6 +694,17 @@ Supporting or legacy dashboard pieces that may compose older layouts. The **Anal
 | **How**  | `listEntries(filters)`; sticky header; status badges; **Advance status** and **Edit** actions per role; `max-h-[640px] overflow-auto` for vertical scroll (works with Lenis nested scroll). |
 
 
+**Role actions (mirrors `web/src/lib/entryPermissions.ts`)**
+
+
+| Role | Edit values | Advance status |
+| ---- | ----------- | -------------- |
+| Data entry | Draft only | draft → submitted |
+| Auditor | — | submitted → approved; approved → locked |
+| Admin | — | — |
+
+On viewports below `md`, the same rows render as **cards** instead of a table (same actions).
+
 ---
 
 ### 8.3 `FormSelect` / `FormDatePicker`
@@ -648,6 +728,38 @@ Supporting or legacy dashboard pieces that may compose older layouts. The **Anal
 | **Why**  | Consistent visual language across tables and cards.                      |
 | **How**  | Pure presentation; driven by entry status or analytics RAG/delta values. |
 
+
+**Field behaviour**
+
+| Component | Used for | Key props / output |
+| --------- | -------- | ------------------ |
+| `StatusWorkflow` | Entry pipeline badge in tables | Maps `draft` → `submitted` → `approved` → `locked` with colours |
+| `RagIndicator` | Dot + label for target RAG | `status`: green \| amber \| red |
+| `DeltaPill` | KPI card footer | `trendText`, `trendPositive` from `KpiSummaryItem` |
+
+---
+
+### 8.5 `Toast`
+
+|          |                                                                 |
+| -------- | --------------------------------------------------------------- |
+| **What** | Temporary success/error message (e.g. after save on Entries page). |
+| **Why**  | Confirms actions without modal dialogs.                         |
+| **How**  | `EntriesPage` local state; auto-dismiss; used for edit lock errors and save confirmation. |
+
+---
+
+### 8.6 `entryForm.ts` (Zod schema)
+
+| Field | Validation | Why |
+| ----- | ---------- | --- |
+| `facilityId` | Required number | Must link to a real site |
+| `metricId` | Required number | Must link to catalogue metric |
+| `value` | Positive number | Readings must be numeric and > 0 |
+| `periodStart` / `periodEnd` | ISO dates; end ≥ start | Valid reporting window |
+| `source`, `enteredBy` | Optional strings | Audit metadata |
+
+Wizard and `EntryForm` share this schema so API and UI reject the same bad input.
 
 ---
 
@@ -711,17 +823,19 @@ The authenticated app uses a **persistent shell** on every page (except Login). 
 
 |          |                                                                                                                                                     |
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **What** | Sticky header above page content: hamburger (collapse sidebar / open mobile menu), API connectivity pill, dark/light toggle, user menu with logout. |
-| **Why**  | Global actions belong here so they are reachable on every page without repeating them in page headers.                                              |
-| **How**  | `useApiConnectivity` polls `/health`; `ThemeContext.toggleTheme`; `ShellContext.toggleSidebar`.                                                     |
+| **What** | Sticky header: menu, title, theme, glossary help, API status, profile menu.                                                                       |
+| **Why**  | Global actions reachable on every authenticated page.                                                                                              |
+| **How**  | `useApiConnectivity` (30s poll of `/health`); `ThemeContext`; `ShellContext` for sidebar + glossary.                                                |
 
 
-**Layout pieces inside the top bar:**
+**Layout (left → right):**
 
-1. **Menu button** — Toggles sidebar collapsed state (desktop) or opens mobile drawer.
-2. **API status** — Green “Connected” / red “Offline” based on health check; explains empty dashboards when API is down.
-3. **Theme toggle** — Sun/moon; chart axes and surfaces follow CSS variables in dark mode.
-4. **User menu** — Role-coloured avatar, name, logout.
+1. **Menu button** — Collapse sidebar (desktop) or open mobile drawer.
+2. **Title block** — “ESG reporting” / subtitle (hidden on very small screens).
+3. **Theme toggle** — Light/dark (`localStorage` key `esg-platform-theme`).
+4. **Help (? )** — Opens `GlossarySidebar` from the right; highlighted while open.
+5. **Live / Offline pill** — `useApiConnectivity`: online when `/health` succeeds within 5s.
+6. **Profile menu** — Avatar initials, name, role title, **Sign out** (clears session, → `/login`).
 
 ---
 
@@ -766,6 +880,8 @@ Although defined under dashboard components, this panel is a **layout region** r
 | `**surface-card**`   | CSS utility for elevated panels (welcome headers, wizard steps).                         | Visual hierarchy — headers feel “above” plain background. |
 | `**page-container**` | Max-width + horizontal padding utility on some pages.                                    | Keeps line length readable on ultra-wide monitors.        |
 | `**Skeleton**`       | Placeholder shimmer while API loads.                                                     | Layout does not jump when data arrives.                   |
+| `**ChartPanel**`     | Title + optional description + optional controls slot above a chart.                     | Used by `MetricTrendPanel`, `FacilityComparison`, legacy `EnvironmentalTrends`. |
+| `**AnimatedFieldError**` | Inline validation message under form fields.                                        | `EntryForm` / wizard show Zod errors with motion.          |
 
 
 ---
@@ -778,8 +894,18 @@ Although defined under dashboard components, this panel is a **layout region** r
 | `AuthContext`     | User, role, login/logout                                | Sidebar nav items and page permissions.                     |
 | `PlatformContext` | Period preset, date range, facility selection           | Report filter panel and all analytics widgets stay in sync. |
 | `ThemeContext`    | Light / dark mode                                       | TopBar toggle; chart colours and surfaces.                  |
-| `ShellContext`    | Sidebar collapsed, mobile drawer open, body scroll lock | Mobile nav and sidebar width transitions.                   |
+| `ShellContext`    | Sidebar collapsed, mobile drawer, **glossary panel open**, body scroll lock | Mobile nav, glossary overlay, sidebar width.                |
 
+
+---
+
+### 9.8 `GlossarySidebar`
+
+|          |                                                                 |
+| -------- | --------------------------------------------------------------- |
+| **What** | Full-height panel sliding in from the **right** with search.      |
+| **Why**  | Self-service definitions for ESG, GHG, RAG, roles, workflow terms. |
+| **How**  | Rendered in `AppShell`; `searchGlossary()` filters `GLOSSARY_ENTRIES`; grouped by category. |
 
 ---
 
@@ -798,10 +924,42 @@ Base URL configured in `web/.env` as `VITE_API_URL` (e.g. `http://localhost:5000
 | `GET /analytics/facility-comparison`                                             | Per-facility totals        |
 | `GET /analytics/targets`                                                         | Target vs actual + RAG     |
 | `GET /analytics/data-quality`                                                    | Submission rates and gaps  |
-| `GET /report/excel`                                                              | Excel export               |
+| `GET /report/excel`                                                              | Excel export (used by UI)  |
+| `GET /report/pdf`                                                                | PDF export (API only — not wired in web UI yet) |
 
 
-Validation and status rules live in `api/src/validation.ts` and `api/src/services/entries.ts`. Analytics aggregations live in `api/src/services/analytics.ts`.
+### Request headers (demo permissions)
+
+The web client sends **`X-App-Role`** on every API call (`web/src/api.ts` interceptor), read from the logged-in user’s role in `sessionStorage`.
+
+| Role header | Create entry | Edit values | Status transitions |
+| ----------- | ------------ | ----------- | ------------------ |
+| `data-entry` | Yes | Draft only | draft → submitted |
+| `auditor` | No | No | submitted → approved; approved → locked |
+| `admin` | No | No | No |
+| (missing/invalid) | Denied on protected routes | | |
+
+Server rules: `api/src/lib/entryPermissions.ts` → HTTP **403** with message; `errorHandler` maps `EntryPermissionError`.
+
+### Excel report contents (`buildExcelReport`)
+
+| Sheet / section | Contents |
+| --------------- | -------- |
+| **Summary** | Period, facility scope, KPI totals + deltas, target RAG table |
+| **Details** | Row per entry: facility, category, metric, unit, period, value, status |
+
+Filename pattern: `esg-report-{start}-{end}.xlsx`. Triggered from `GlobalControllerPanel` → `downloadExcelReport`.
+
+### Validation and services
+
+- **Validation:** `api/src/validation.ts` (Zod query/body schemas, period string `start,end`).
+- **Entries:** `api/src/services/entries.ts` (CRUD, audits on change).
+- **Analytics:** `api/src/services/analytics.ts` (KPIs, trend, comparison, targets, data quality).
+- **Reports:** `api/src/services/reports.ts` (Excel + PDF builders).
+
+### CORS (local dev)
+
+In development, any `http://localhost:*` / `http://127.0.0.1:*` origin is allowed in addition to `CORS_ORIGIN`, so Vite ports 5173, 5174, etc. work (`api/src/middleware/cors.ts`).
 
 ---
 
@@ -853,7 +1011,54 @@ Open the web app, log in with a demo account, and use **Analytics** with period 
 
 ---
 
-## 14. Related documentation
+## 14. Hooks, utilities & shared config (not UI components)
+
+| Module | What | Why | How |
+| ------ | ---- | --- | --- |
+| `useApiConnectivity` | Polls `GET /health` every 30s | TopBar Live/Offline indicator | Returns `online` \| `offline` \| `checking` |
+| `periodPresets.ts` | Maps preset → `periodStart`/`periodEnd` | One filter drives all analytics | `rolling12`, `monthly`, `quarterly`, `annual`, `custom`; seed year **2025** for annual/monthly demos |
+| `kpiConfig.ts` | Maps API metric names → KPI card labels/icons | Hero row shows Emissions/Energy/Water/Waste consistently | Pattern match on metric name substrings |
+| `chartData.ts` | `SEED_DATA_YEAR` constant | Social page and presets align with seeded data | Used by charts that assume 2025 demo data |
+| `entryPermissions.ts` (web) | Role capabilities + `nextStatusForRole` | UI hides illegal buttons before API 403 | Mirrors server transitions |
+| `entryStatus.ts` | `statusAdvanceLabel()` | Button text: Submit / Approve / Lock | Pure presentation |
+| `glossary.ts` | `GLOSSARY_ENTRIES` + `searchGlossary` | In-app ? sidebar | Add terms here when UI introduces new labels |
+| `ragStatus.ts` | `RAG_STATUS_RULES` copy | `RagStatusHelp` popover | Matches `ragForActual` on server |
+| `motion.ts` | Framer Motion presets | Consistent page enter animations | `staggerContainer`, `drawerTransition`, etc. |
+| `cn.ts` | `clsx` + `tailwind-merge` | Conditional class names | Used across components |
+
+---
+
+## 15. Seeded demo catalogue (what appears in the UI)
+
+After `npm run prisma:seed` (`api/prisma/seed.ts`):
+
+| Type | Demo content | Why |
+| ---- | ------------ | --- |
+| **Facilities** | Plant A (Sheffield), Plant B (Leeds), Mine Site C (Pilbara) | Different scales via `factor` multiplier |
+| **Metrics** | 12 metrics across E, S, G (CO₂e, Energy, Water, Waste, LTIFR, Training, …) | Covers all three pillars in charts |
+| **Entries** | 12 months of 2025 per facility×metric | Powers trends and KPIs |
+| **Targets** | Environmental metrics only; multipliers 1.05 / 0.98 / 0.82 per site | Drives green/amber/red when period = full year |
+| **Statuses** | Mixed draft, submitted, approved, locked | Exercises each role’s actions |
+
+---
+
+## 16. Architecture doc vs this guide
+
+| Topic | In `esg-platform-architecture.md` | In this guide |
+| ----- | --------------------------------- | ------------- |
+| Schema tables, hybrid deployment | Yes | Summary in §3 |
+| Page-by-page layout regions | Partial | **§6** (full layouts) |
+| Per-component field tables | No | **§7–8, §15** |
+| In-app glossary / RAG help | No | **§7.10, §9.8, `glossary.ts`** |
+| `X-App-Role` / 403 permissions | May vary | **§10** |
+| Legacy unused components | No | **§7.11** |
+| PDF export endpoint | May be listed | **§10** (UI not connected) |
+
+When you add a feature to the app, update **both** the architecture doc (if data model or API changes) and this guide (if users see new fields or flows).
+
+---
+
+## 17. Related documentation
 
 
 | File                                  | Contents                          |
@@ -861,6 +1066,8 @@ Open the web app, log in with a demo account, and use **Analytics** with period 
 | `README.md`                           | Setup and run instructions        |
 | `esg-platform-architecture.md`        | Technical architecture and schema |
 | `esg-platform-stories-and-prompts.md` | User stories and build prompts    |
+| `web/src/lib/glossary.ts`             | In-app searchable glossary        |
+| `web/src/lib/ragStatus.ts`            | RAG rules copy for Status ? help  |
 
 
 ---

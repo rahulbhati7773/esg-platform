@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { ShellProvider } from "../../context/ShellContext.js";
 import { SmoothScrollProvider } from "./SmoothScrollProvider.js";
+import { GlossarySidebar } from "./GlossarySidebar.js";
 import { Sidebar } from "./Sidebar.js";
 import { TopBar } from "./TopBar.js";
 
@@ -16,6 +17,7 @@ export function AppShell() {
               <Outlet />
             </main>
           </div>
+          <GlossarySidebar />
         </div>
       </ShellProvider>
     </SmoothScrollProvider>
