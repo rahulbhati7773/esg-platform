@@ -1,10 +1,71 @@
-// Application models and migrations will be added in a later prompt.
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
+}
+
+model Facility {
+  id       Int        @id @default(autoincrement())
+  name     String
+  type     String
+  location String?
+  entries  EsgEntry[]
+  targets  Target[]
+}
+
+model MetricCategory {
+  id      Int      @id @default(autoincrement())
+  name    String
+  metrics Metric[]
+}
+
+model Metric {
+  id         Int            @id @default(autoincrement())
+  categoryId Int
+  category   MetricCategory @relation(fields: [categoryId], references: [id])
+  name       String
+  unit       String
+  entries    EsgEntry[]
+  targets    Target[]
+}
+
+model EsgEntry {
+  id          Int          @id @default(autoincrement())
+  facilityId  Int
+  metricId    Int
+  value       Float
+  periodStart DateTime
+  periodEnd   DateTime
+  source      String?
+  enteredBy   String?
+  status      String       @default("draft")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  facility    Facility     @relation(fields: [facilityId], references: [id])
+  metric      Metric       @relation(fields: [metricId], references: [id])
+  audits      EntryAudit[]
+}
+
+model EntryAudit {
+  id        Int      @id @default(autoincrement())
+  entryId   Int
+  action    String
+  oldValue  Float?
+  newValue  Float?
+  changedBy String?
+  changedAt DateTime @default(now())
+  entry     EsgEntry @relation(fields: [entryId], references: [id])
+}
+
+model Target {
+  id          Int       @id @default(autoincrement())
+  metricId    Int
+  facilityId  Int?
+  targetValue Float
+  period      String
+  metric      Metric    @relation(fields: [metricId], references: [id])
+  facility    Facility? @relation(fields: [facilityId], references: [id])
 }
